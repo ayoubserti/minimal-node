@@ -29,6 +29,9 @@ void Print(const v8::FunctionCallbackInfo<v8::Value>& args);
 void NextTick(const v8::FunctionCallbackInfo<v8::Value>& args);
 void SetTimeOut(const v8::FunctionCallbackInfo<v8::Value>& args);
 
+//read file synchronously
+void ReadFile(const v8::FunctionCallbackInfo<v8::Value>& args);
+
 
 struct Handler
 {

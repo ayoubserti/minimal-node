@@ -1,5 +1,7 @@
 #include "tuto6.h"
 using namespace v8;
+
+
 void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	bool first = true;
 	for (int i = 0; i < args.Length(); i++) {
@@ -48,3 +50,22 @@ void SetTimeOut(const v8::FunctionCallbackInfo<v8::Value>& args) {
 }
 
 
+void ReadFile(const v8::FunctionCallbackInfo<v8::Value>& args)
+{	
+	if (args.Length() > 0)
+	{
+		std::fstream fileScript;
+
+		fileScript.open(*String::Utf8Value(args[0]->ToString()), std::ios_base::in);
+		if (fileScript.is_open())
+		{
+			std::string contentScript((std::istreambuf_iterator<char>(fileScript)),
+				(std::istreambuf_iterator<char>()));
+			
+			Local<String> content = String::NewFromUtf8(args.GetIsolate(), contentScript.c_str(), String::kNormalString);
+			args.GetReturnValue().Set(content);
+		}
+
+		
+	}
+}

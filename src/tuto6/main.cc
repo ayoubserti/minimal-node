@@ -1,3 +1,5 @@
+//tuto6 
+// implement require function
 #include "tuto6.h"
 
 using namespace v8;
@@ -52,7 +54,7 @@ int main(int argc, char* argv[]) {
 	global->Set(String::NewFromUtf8(isolate, "console", NewStringType::kNormal).ToLocalChecked(), console);
 
 	global->Set(String::NewFromUtf8(isolate, "setTimeout", NewStringType::kNormal).ToLocalChecked(), FunctionTemplate::New(isolate, SetTimeOut)->GetFunction());
-
+	global->Set(String::NewFromUtf8(isolate, "readFile", NewStringType::kNormal).ToLocalChecked(), FunctionTemplate::New(isolate, ReadFile)->GetFunction());
     // Create a string containing the JavaScript source code.
     Local<String> source =
 		String::NewFromUtf8(isolate, contentScript.c_str(),

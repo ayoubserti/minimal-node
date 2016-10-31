@@ -1,5 +1,5 @@
 //tuto7 
-// implement tcp_stream 
+// implement stream
 #include "tuto7.h"
 
 #include <WinSock2.h>

@@ -69,3 +69,41 @@ void ReadFile(const v8::FunctionCallbackInfo<v8::Value>& args)
 		
 	}
 }
+
+static void streamReader(std::fstream* inFS,Handler* handler)
+{
+	static int chunck_size = 512; //512 byte lenght
+	char* buf = (char*)::malloc(chunck_size);
+	while (!inFS->eof())
+	{
+		std::streamsize len = inFS->readsome(buf, chunck_size);
+		//install check handler
+		Handler check;
+		check.kind = eCheck;
+		check.parent = handler;
+		check.data = buf;
+		check.len = len;
+		eventLoop.push(check);
+		
+	}
+}
+
+
+void ReadFileAsync(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	std::fstream* fs = new std::fstream();
+	fs->open(*String::Utf8Value(args[0]->ToString()), std::ios_base::in);
+	if (fs->is_open())
+	{
+		//install prepare handler into eventloop
+		Handler* prepare = new Handler;
+		prepare->kind = ePrepare;
+		prepare->callback.Reset(args.GetIsolate(), args[1].As<Function>());
+
+		std::thread* th = new std::thread(&streamReader, prepare);
+		if (th != nullptr)
+		{
+			eventLoop.push(*prepare);
+		}
+	}
+}

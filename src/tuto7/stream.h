@@ -6,6 +6,7 @@
 
 
 class EventLoop;
+struct Handler;
 
 class Stream {
 
@@ -36,5 +37,6 @@ class IFileStream  : public Stream{
     private:
         EventLoop* eventloop_;
         FILE* fd_;
+        
 
 };

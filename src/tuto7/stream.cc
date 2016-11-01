@@ -1,10 +1,17 @@
 #include "stream.h"
 
-IFileStream::IFileStream(EventLoop* eventLoop,FILE* inFD)
-:eventloop_(eventloop),
-:fd_(inFD)
-{
+#include "eventloop.h"
 
+IFileStream::IFileStream(EventLoop* eventLoop,FILE* inFD)
+:eventloop_(eventLoop),
+fd_(inFD)
+{
+    //when a stream file is create
+    //notify eventloop that a new prepare handler is ready to be add to loop
+    Handler* prepare= new Handler();
+	prepare->kind = ePrepare;
+	
+    
 }
 
 IFileStream::~IFileStream()

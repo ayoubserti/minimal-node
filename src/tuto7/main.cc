@@ -8,6 +8,7 @@ using namespace v8;
 
 std::queue<Handler> eventQueue;
 
+EventLoop eventLoop;
 
 Local<Context> CreateProcessContext(Isolate* isolate)
 {
@@ -16,7 +17,7 @@ Local<Context> CreateProcessContext(Isolate* isolate)
 	
 	process->Set(String::NewFromUtf8(isolate, "setTimeout", NewStringType::kNormal).ToLocalChecked(), FunctionTemplate::New(isolate, SetTimeOut));
 	process->Set(String::NewFromUtf8(isolate, "readFile", NewStringType::kNormal).ToLocalChecked(), FunctionTemplate::New(isolate, ReadFile));
-
+	process->Set(String::NewFromUtf8(isolate, "readFileAsync", NewStringType::kNormal).ToLocalChecked(), FunctionTemplate::New(isolate, ReadFileAsync));
 	return Context::New(isolate, NULL, process);
 }
 
@@ -63,6 +64,11 @@ int main(int argc, char* argv[]) {
 	console->Set(String::NewFromUtf8(isolate, "log", NewStringType::kNormal).ToLocalChecked(), FunctionTemplate::New(isolate, Print)->GetFunction());
 	processObj->Set(String::NewFromUtf8(isolate, "console", NewStringType::kNormal).ToLocalChecked(), console);
 	
+
+	//set context for eventloop
+	eventLoop.SetContext(process);
+
+
     // Create a string containing the JavaScript source code.
     Local<String> source =
 		String::NewFromUtf8(isolate, contentScript.c_str(),
@@ -76,6 +82,9 @@ int main(int argc, char* argv[]) {
 
 	//after the whole script are executed, 
 	//it's now time for event loop to find delayed work
+
+	eventLoop.run();
+	/*
 	while (!eventQueue.empty())
 	{
 		Handler handler = eventQueue.front();
@@ -90,6 +99,7 @@ int main(int argc, char* argv[]) {
 		std::this_thread::yield(); 
 		v8::platform::PumpMessageLoop(platform,isolate);
 	}
+	*/
 
 
   }

@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <queue>
+#include <vector>
 
 //used for this_thread::yield()
 #include <thread>
@@ -43,6 +44,7 @@ enum HandlerKind{
 
 struct Handler
 {
+	static int sHandlerID;
 
 	HandlerKind kind;
 
@@ -66,12 +68,18 @@ struct Handler
 	{
 		data = nullptr;
 		len = 0;
+		id = ++sHandlerID;
 	}
-
+	~Handler()
+	{
+		callback.Empty();
+		::free(data);
+	}
+	int id;
 };
 
 
-extern std::queue<Handler> eventQueue;
+
 
 class EventLoop
 {
@@ -80,13 +88,22 @@ private:
 	v8::Persistent<v8::Context,v8::CopyablePersistentTraits<v8::Context> > context;
 	v8::Isolate*  isolate;
 	std::priority_queue < Handler, std::vector<Handler>, Handler::Less> eventQueueTimer;
-	std::queue<Handler> eventQueuePrepare;
+	std::vector<Handler> eventQueuePrepare;
 	std::queue<Handler> eventQueuCheck;
 	
 public:
+	EventLoop(){}
+	~EventLoop(){
+		context.Empty();
+	}
 	EventLoop(v8::Local<v8::Context> inContext)
 	{
-		context.Reset(inContext->GetIsolate(), context);
+		context.Reset(inContext->GetIsolate(), inContext);
+		isolate = inContext->GetIsolate();
+	}
+	void SetContext(v8::Local<v8::Context> inContext)
+	{
+		context.Reset(inContext->GetIsolate(), inContext);
 		isolate = inContext->GetIsolate();
 	}
 	void push(const Handler& handler)
@@ -97,7 +114,7 @@ public:
 		}
 		else if (handler.kind == ePrepare)
 		{
-			eventQueuePrepare.push(handler);
+			eventQueuePrepare.push_back(handler);
 		}
 		else if (handler.kind == eCheck)
 		{
@@ -108,33 +125,50 @@ public:
 
 	void run()
 	{
-		//pass timers
-		while (!eventQueueTimer.empty())
-		{
-			Handler handler = eventQueueTimer.top();
-			if (handler.end < std::chrono::system_clock::now())
+		do{
+			//pass timers
+			while (!eventQueueTimer.empty())
 			{
-				v8::Local<v8::Function> function = handler.callback.Get(isolate);
-				function->Call(context.Get(isolate), 0, {});
-				handler.callback.Empty();
-				eventQueue.pop();
+				Handler handler = eventQueueTimer.top();
+				if (handler.end < std::chrono::system_clock::now())
+				{
+					v8::Local<v8::Function> function = handler.callback.Get(isolate);
+					function->Call(context.Get(isolate)->Global(), 0, {});
+					handler.callback.Empty();
+					eventQueueTimer.pop();
+				}
+				else
+				{
+					break;
+				}
+
 			}
-			else
+
+			//pass directly to check
+			while (!eventQueuCheck.empty())
 			{
-				break;
+				Handler handler = eventQueuCheck.front();
+				if (handler.parent != nullptr)
+				{
+					//remove prepare handler associated
+					auto it = std::find_if(eventQueuePrepare.begin(), eventQueuePrepare.end(), [&](const Handler& item){
+						return item.id == handler.parent->id;
+					});
+					
+					if (it != eventQueuePrepare.end())
+					{
+						it->callback.Get(isolate)->Call(context.Get(isolate)->Global(), 0, {});
+						eventQueuePrepare.erase(it);
+					}
+
+					eventQueuCheck.pop();
+				}
 			}
 
-		}
-
-		//pass prepare
-		while (!eventQueuePrepare.empty())
-		{
-			Handler handler = eventQueuePrepare.front();
-
-		}
 
 
-
+		} while (eventQueuCheck.empty() || eventQueueTimer.empty() || eventQueuePrepare.empty());
+		
 	}
 
 };

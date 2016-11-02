@@ -2,13 +2,11 @@
 // implement stream
 #include "tuto7.h"
 
-#include <WinSock2.h>
+#include <fstream>
 
 using namespace v8;
 
-std::queue<Handler> eventQueue;
-
-
+EventLoop* eventLoop;
 Local<Context> CreateProcessContext(Isolate* isolate)
 {
 	Local<ObjectTemplate> process = ObjectTemplate::New(isolate);
@@ -16,7 +14,7 @@ Local<Context> CreateProcessContext(Isolate* isolate)
 	
 	process->Set(String::NewFromUtf8(isolate, "setTimeout", NewStringType::kNormal).ToLocalChecked(), FunctionTemplate::New(isolate, SetTimeOut));
 	process->Set(String::NewFromUtf8(isolate, "readFile", NewStringType::kNormal).ToLocalChecked(), FunctionTemplate::New(isolate, ReadFile));
-
+	process->Set(String::NewFromUtf8(isolate, "readFileAsync", NewStringType::kNormal).ToLocalChecked(), FunctionTemplate::New(isolate, ReadFileAsync));
 	return Context::New(isolate, NULL, process);
 }
 
@@ -44,6 +42,8 @@ int main(int argc, char* argv[]) {
 
     // Enter the context for compiling and running the hello world script.
     Context::Scope context_process_scope(process);
+	eventLoop = new EventLoop(process);
+
 	Local<Object> processObj = process->Global();
 	//parse argument to find file name
 	if (argc <2)
@@ -76,7 +76,9 @@ int main(int argc, char* argv[]) {
 
 	//after the whole script are executed, 
 	//it's now time for event loop to find delayed work
-	while (!eventQueue.empty())
+	eventLoop->run();
+
+	/*while (!eventQueue.empty())
 	{
 		Handler handler = eventQueue.front();
 		if (handler.end < std::chrono::system_clock::now())
@@ -89,7 +91,7 @@ int main(int argc, char* argv[]) {
 		
 		std::this_thread::yield(); 
 		v8::platform::PumpMessageLoop(platform,isolate);
-	}
+	}*/
 
 
   }

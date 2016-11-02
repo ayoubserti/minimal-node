@@ -1,4 +1,11 @@
 #include "tuto7.h"
+#include <iostream>
+#include <fstream>
+#include "stream.h"
+
+#include "eventloop.h"
+
+
 using namespace v8;
 
 
@@ -31,7 +38,7 @@ void NextTick(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		handler.end =handler.start = std::chrono::system_clock::now();
 		handler.callback.Reset(args.GetIsolate(), args[0].As<Function>());
 
-		eventQueue.push(handler);
+		eventLoop->push(handler);
 	}
 }
 
@@ -45,7 +52,7 @@ void SetTimeOut(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		handler.callback.Reset(args.GetIsolate(), args[0].As<Function>());
 		
 		handler.end += std::chrono::milliseconds(args[1]->ToInt32()->Value());
-		eventQueue.push(handler);
+		eventLoop->push(handler);
 	}
 }
 
@@ -70,40 +77,25 @@ void ReadFile(const v8::FunctionCallbackInfo<v8::Value>& args)
 	}
 }
 
-static void streamReader(std::fstream* inFS,Handler* handler)
+static void streamReader(Stream* inFS)
 {
+	
 	static int chunck_size = 512; //512 byte lenght
-	char* buf = (char*)::malloc(chunck_size);
-	while (!inFS->eof())
+	while (!inFS->isEOF())
 	{
-		std::streamsize len = inFS->readsome(buf, chunck_size);
-		//install check handler
-		Handler check;
-		check.kind = eCheck;
-		check.parent = handler;
-		check.data = buf;
-		check.len = len;
-		eventLoop.push(check);
+		char* buf = (char*)::malloc(chunck_size);
+		unsigned int len = inFS->Get(buf, chunck_size);
 		
-	}
+	}	
 }
 
 
 void ReadFileAsync(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	std::fstream* fs = new std::fstream();
-	fs->open(*String::Utf8Value(args[0]->ToString()), std::ios_base::in);
-	if (fs->is_open())
-	{
-		//install prepare handler into eventloop
-		Handler* prepare = new Handler;
-		prepare->kind = ePrepare;
-		prepare->callback.Reset(args.GetIsolate(), args[1].As<Function>());
-
-		std::thread* th = new std::thread(&streamReader, prepare);
-		if (th != nullptr)
-		{
-			eventLoop.push(*prepare);
-		}
-	}
+	Handler* prepare = new Handler;
+	prepare->kind = ePrepare;
+	prepare->callback.Reset(args.GetIsolate(), args[1].As<Function>());
+	Stream* stream = IFileStream::CreateIFileStream(eventLoop, prepare, *String::Utf8Value(args[0]->ToString()));
+	eventLoop->push(*prepare);
+	std::thread* th = new std::thread(&streamReader,stream);
 }

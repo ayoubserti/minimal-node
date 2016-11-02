@@ -31,11 +31,12 @@ class IFileStream  : public Stream{
         unsigned int Put( const char* inData,unsigned int len);
 		bool isEOF();
         void Close();
-        IFileStream(EventLoop* eventLoop, FILE* inFD);
+		IFileStream(EventLoop* eventLoop, Handler* prepare, FILE* inFD);
 
-        static Stream* CreateIFileStream(EventLoop* eventLoop, const std::string& inFileName); 
+        static Stream* CreateIFileStream(EventLoop* eventLoop,Handler* prepare ,const std::string& inFileName); 
     private:
         EventLoop* eventloop_;
+		Handler* prepare_;
         FILE* fd_;
         
 

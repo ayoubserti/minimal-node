@@ -8,6 +8,7 @@
 
 
 #include <thread>
+#include <mutex>
 #include "v8.h"
 
 
@@ -20,6 +21,7 @@ enum HandlerKind{
 
 struct Handler
 {
+	static int sHandlerID;
 
 	HandlerKind kind;
 
@@ -28,7 +30,7 @@ struct Handler
 
 	struct Less
 	{
-		bool operator()( const Handler& lhs, const Handler& rhs){
+		bool operator()(const Handler& lhs, const Handler& rhs){
 			if (lhs.end < rhs.end) return true;
 			return false;
 		}
@@ -43,9 +45,20 @@ struct Handler
 	{
 		data = nullptr;
 		len = 0;
+		id = ++sHandlerID;
+		ref = 1;
 	}
+	~Handler()
+	{
+		callback.Empty();
+		/*if (data != nullptr)
+			::free(data);*/
+	}
+	int id;
 
+	int ref;
 };
+
 
 
 class EventLoop
@@ -55,13 +68,15 @@ private:
 	v8::Persistent<v8::Context,v8::CopyablePersistentTraits<v8::Context> > context;
 	v8::Isolate*  isolate;
 	std::priority_queue < Handler, std::vector<Handler>, Handler::Less> eventQueueTimer;
-	std::queue<Handler> eventQueuePrepare;
+	std::vector<Handler> eventQueuePrepare;
 	std::queue<Handler> eventQueueCheck;
+
+	
 	
 public:
 	EventLoop(v8::Local<v8::Context> inContext)
 	{
-		context.Reset(inContext->GetIsolate(), context);
+		context.Reset(inContext->GetIsolate(), inContext);
 		isolate = inContext->GetIsolate();
 	}
 	void push(const Handler& handler)
@@ -72,7 +87,7 @@ public:
 		}
 		else if (handler.kind == ePrepare)
 		{
-			eventQueuePrepare.push(handler);
+			eventQueuePrepare.push_back(handler);
 		}
 		else if (handler.kind == eCheck)
 		{

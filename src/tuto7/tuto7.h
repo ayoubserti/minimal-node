@@ -5,6 +5,8 @@
 #include "libplatform/libplatform.h"
 #include "v8.h"
 
+#include "eventloop.h"
+
 class ArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
  public:
   virtual void* Allocate(size_t length) {
@@ -25,7 +27,7 @@ void ReadFile(const v8::FunctionCallbackInfo<v8::Value>& args);
 //read file async
 void ReadFileAsync(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-
+extern EventLoop* eventLoop;
 
 
 

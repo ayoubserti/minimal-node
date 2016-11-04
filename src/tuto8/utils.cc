@@ -1,4 +1,4 @@
-#include "tuto7.h"
+#include "tuto8.h"
 using namespace v8;
 
 
@@ -31,7 +31,7 @@ void NextTick(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		handler.end =handler.start = std::chrono::system_clock::now();
 		handler.callback.Reset(args.GetIsolate(), args[0].As<Function>());
 		handler.kind = eTimer;
-		eventLoop.push(handler);
+		eventLoop->push(handler);
 	}
 }
 
@@ -46,7 +46,7 @@ void SetTimeOut(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		handler.callback.Reset(args.GetIsolate(), args[0].As<Function>());
 		
 		handler.end += std::chrono::milliseconds(args[1]->ToInt32()->Value());
-		eventLoop.push(handler);
+		eventLoop->push(handler);
 	}
 }
 
@@ -88,7 +88,7 @@ static void streamReader(std::fstream* inFS,Handler* handler)
 			check.data = ::malloc(len);
 			memcpy(check.data, buf, len);
 			check.len = len;
-			eventLoop.push(check);
+			eventLoop->push(check);
 		}
 		
 	}
@@ -109,9 +109,9 @@ void ReadFileAsync(const v8::FunctionCallbackInfo<v8::Value>& args)
 		std::thread* th = new std::thread(&streamReader, fs,prepare);
 		if (th != nullptr)
 		{
-			eventLoop.push(*prepare);
+			eventLoop->push(*prepare);
 		}
 	}
 }
 
-int Handler::sHandlerID = 0;
+//int Handler::sHandlerID = 0;

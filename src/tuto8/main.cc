@@ -1,14 +1,11 @@
-//tuto7 
-// implement stream
-#include "tuto7.h"
-
-#include <WinSock2.h>
+//tuto8
+// implement buffer object
+#include "tuto8.h"
+#include "buffer_wrap.h"
 
 using namespace v8;
 
-std::queue<Handler> eventQueue;
-
-EventLoop eventLoop;
+EventLoop* eventLoop = nullptr;
 
 Local<Context> CreateProcessContext(Isolate* isolate)
 {
@@ -64,11 +61,11 @@ int main(int argc, char* argv[]) {
 	console->Set(String::NewFromUtf8(isolate, "log", NewStringType::kNormal).ToLocalChecked(), FunctionTemplate::New(isolate, Print)->GetFunction());
 	processObj->Set(String::NewFromUtf8(isolate, "console", NewStringType::kNormal).ToLocalChecked(), console);
 	
+	//add Buffer
+	Buffer_Wrap::RegisterBufferClass(processObj);
 
-	//set context for eventloop
-	eventLoop.SetContext(process);
 
-
+	eventLoop = new EventLoop(process);
     // Create a string containing the JavaScript source code.
     Local<String> source =
 		String::NewFromUtf8(isolate, contentScript.c_str(),
@@ -82,8 +79,8 @@ int main(int argc, char* argv[]) {
 
 	//after the whole script are executed, 
 	//it's now time for event loop to find delayed work
-
-	eventLoop.run();
+	
+	eventLoop->run();
 	/*
 	while (!eventQueue.empty())
 	{

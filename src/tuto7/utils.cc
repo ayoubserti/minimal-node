@@ -30,8 +30,8 @@ void NextTick(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		Handler handler;
 		handler.end =handler.start = std::chrono::system_clock::now();
 		handler.callback.Reset(args.GetIsolate(), args[0].As<Function>());
-
-		eventQueue.push(handler);
+		handler.kind = eTimer;
+		eventLoop.push(handler);
 	}
 }
 
@@ -41,11 +41,12 @@ void SetTimeOut(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	if (args.Length() > 1)
 	{
 		Handler handler;
+		handler.kind = eTimer;
 		handler.end = handler.start = std::chrono::system_clock::now();
 		handler.callback.Reset(args.GetIsolate(), args[0].As<Function>());
 		
 		handler.end += std::chrono::milliseconds(args[1]->ToInt32()->Value());
-		eventQueue.push(handler);
+		eventLoop.push(handler);
 	}
 }
 
@@ -73,17 +74,22 @@ void ReadFile(const v8::FunctionCallbackInfo<v8::Value>& args)
 static void streamReader(std::fstream* inFS,Handler* handler)
 {
 	static int chunck_size = 512; //512 byte lenght
-	char* buf = (char*)::malloc(chunck_size);
+	char buf[512];
 	while (!inFS->eof())
 	{
-		std::streamsize len = inFS->readsome(buf, chunck_size);
-		//install check handler
-		Handler check;
-		check.kind = eCheck;
-		check.parent = handler;
-		check.data = buf;
-		check.len = len;
-		eventLoop.push(check);
+		std::streamsize len = inFS->read(buf, 512).readsome(buf, 512);
+		
+		if (len > 0)
+		{
+			//install check handler
+			Handler check;
+			check.kind = eCheck;
+			check.parent = handler;
+			check.data = ::malloc(len);
+			memcpy(check.data, buf, len);
+			check.len = len;
+			eventLoop.push(check);
+		}
 		
 	}
 }
@@ -92,7 +98,7 @@ static void streamReader(std::fstream* inFS,Handler* handler)
 void ReadFileAsync(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	std::fstream* fs = new std::fstream();
-	fs->open(*String::Utf8Value(args[0]->ToString()), std::ios_base::in);
+	fs->open(*String::Utf8Value(args[0]->ToString()), std::ios_base::binary | std::ios_base::in);
 	if (fs->is_open())
 	{
 		//install prepare handler into eventloop
@@ -100,10 +106,12 @@ void ReadFileAsync(const v8::FunctionCallbackInfo<v8::Value>& args)
 		prepare->kind = ePrepare;
 		prepare->callback.Reset(args.GetIsolate(), args[1].As<Function>());
 
-		std::thread* th = new std::thread(&streamReader, prepare);
+		std::thread* th = new std::thread(&streamReader, fs,prepare);
 		if (th != nullptr)
 		{
 			eventLoop.push(*prepare);
 		}
 	}
 }
+
+int Handler::sHandlerID = 0;

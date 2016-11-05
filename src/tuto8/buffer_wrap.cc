@@ -119,7 +119,18 @@ void Buffer_Wrap::GetData(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 				if (strVal=="hex")
 				{
-					
+					uint64_t len = ptr->GetLength();
+					char* tmp = ( char*)malloc(len* 2 +1);
+					const unsigned char* data = ptr->GetData();
+					for (uint64_t i = 0; i < len; i++)
+					{
+						int a = sprintf(tmp, "%02X", data[i]);
+						tmp += 2;
+					}
+					tmp -= (len*2) ;
+					Local<String> ret = String::NewFromUtf8(isolate, tmp, NewStringType::kNormal, len*2).ToLocalChecked();
+					free(tmp);
+					args.GetReturnValue().Set(ret);
 				}
 				else if (strVal == "ascii")
 				{

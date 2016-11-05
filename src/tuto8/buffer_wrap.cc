@@ -25,7 +25,7 @@ void Buffer_Wrap::RegisterBufferClass(v8::Local<v8::Object> context)
 	buffer->PrototypeTemplate()->Set(isolate, "length", FunctionTemplate::New(isolate, GetLength));
 	buffer->PrototypeTemplate()->Set(isolate, "toString", FunctionTemplate::New(isolate, GetData));
 	buffer->PrototypeTemplate()->Set(isolate, "setByte", FunctionTemplate::New(isolate, SetByte));
-	
+	buffer->InstanceTemplate()->SetIndexedPropertyHandler(IndexedGetter,	 IndexedSetter);
 	buffer_.Reset(isolate,buffer);
 	
 	
@@ -147,4 +147,38 @@ void Buffer_Wrap::GetData(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 	}
 
+}
+
+
+void Buffer_Wrap::IndexedGetter(uint32_t index, const PropertyCallbackInfo<Value>& info)
+{
+	Buffer_Wrap* obj = reinterpret_cast<Buffer_Wrap*>(info.This()->GetAlignedPointerFromInternalField(0));
+	if (obj)
+	{
+		auto ptr = obj->buffer_ptr_;
+		if (ptr && (index < ptr->GetLength()))
+		{
+			info.GetReturnValue().Set(ptr->GetByte(index));
+		}
+		//enhance this: throw JS Exception
+	}
+}
+
+void Buffer_Wrap::IndexedSetter(uint32_t index, Local<Value> value, const PropertyCallbackInfo<Value>& info)
+{
+	if (value->IsInt32())
+	{
+		Buffer_Wrap* obj = reinterpret_cast<Buffer_Wrap*>(info.This()->GetAlignedPointerFromInternalField(0));
+		if (obj)
+		{
+			auto ptr = obj->buffer_ptr_;
+			if (ptr && (index < ptr->GetLength()))
+			{
+				unsigned char val = value->ToInt32()->Value() & 0xFF;
+				ptr->SetByte(index, val);
+			}
+			//enhance this: throw JS Exception
+		}
+	}
+	
 }

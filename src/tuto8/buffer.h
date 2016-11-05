@@ -22,6 +22,7 @@ public:
 	unsigned long long GetLength() const;
     void SetByte(unsigned long long position,unsigned char byte);
     const unsigned char* GetData() const;
+	const unsigned char  GetByte(unsigned long long index) const;
 
     
 };

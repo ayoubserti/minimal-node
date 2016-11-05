@@ -56,3 +56,10 @@ Buffer::Buffer(unsigned long long length)
 	data_ = (unsigned char*)calloc(len_,1);
 	
 }
+
+const unsigned char Buffer::GetByte(unsigned long long index) const
+{
+	if (index < len_)
+		return data_[index];
+	return 0; //not consistent
+}
